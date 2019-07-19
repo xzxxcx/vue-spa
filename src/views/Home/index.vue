@@ -13,7 +13,15 @@
       <el-aside :width="width" >
         <!-- 菜单区域 -->
         <div class="toggle-button" @click="toggleCollapse">|||</div>
-        <el-menu :unique-opened="true" background-color="#333744" text-color="#fff" active-text-color="#ffd04b" :collapse="isCollapse" :collapse-transition="false">
+        <el-menu router
+          :unique-opened="true"
+          background-color="#333744"
+          text-color="#fff"
+          active-text-color="#ffd04b"
+          :collapse="isCollapse"
+          :collapse-transition="false"
+          :default-active="active"
+              >
           <!-- 一级导航 -->
           <el-submenu :index="menu.id+''" v-for="menu in menus" :key="menu.id">
             <!-- 一级菜单模板 -->
@@ -22,7 +30,7 @@
               <span>{{menu.authName}}</span>
             </template>
             <!-- 二级菜单 -->
-            <el-menu-item :index="subMenu.id+''" v-for="subMenu in menu.children" :key="subMenu.id">
+            <el-menu-item :index="'/'+subMenu.path" v-for="subMenu in menu.children" :key="subMenu.id" @click="saveNavActive('/'+subMenu.path)">
               <!--    二级菜单 模板 -->
               <template slot="title">
                 <!-- 图标 -->
@@ -35,7 +43,7 @@
           </el-submenu>
         </el-menu>
       </el-aside>
-      <el-main>Main</el-main>
+      <el-main><router-view></router-view></el-main>
     </el-container>
   </el-container>
 </template>
@@ -43,6 +51,7 @@
 export default {
   data: () => ({
     menus: [],
+    // 菜单图标类名
     iconObject: {
       '125': 'iconfont icon-user',
       '103': 'iconfont icon-tijikongjian',
@@ -50,27 +59,42 @@ export default {
       '102': 'iconfont icon-danju',
       '145': 'iconfont icon-baobiao'
     },
-    isCollapse: false
+    // 是否展开
+    isCollapse: false,
+    // 选中状态初始值
+    active: ''
   }),
   created () {
+    // 调用菜单获取
     this.getMenus()
+    // 从本地读取菜单选中状态信息
+    this.active = sessionStorage.getItem('active')
   },
   methods: {
+    // 退出登录
     logout () {
       sessionStorage.clear('token')
       this.$router.push('/login')
     },
+    // 获取菜单列表
     async getMenus () {
       const { data: { data, meta } } = await this.$http.get('menus')
       if (meta.status !== 200) return this.$message.err(meta.msg)
       this.menus = data
       console.log(data)
     },
+    // 切换伸缩侧边栏
     toggleCollapse () {
       this.isCollapse = !this.isCollapse
+    },
+    // 设置菜单选中高亮状态
+    saveNavActive (active) {
+      sessionStorage.setItem('active', active)
+      this.active = active
     }
   },
   computed: {
+    // 计算侧边栏宽度
     width () {
       return this.isCollapse ? '64px' : '200px'
     }
