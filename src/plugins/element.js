@@ -22,6 +22,8 @@ import {
   Pagination,
   Dialog,
   MessageBox,
+  Tag,
+  Tree,
   Main } from 'element-ui'
 
 Vue.use(Button)
@@ -46,6 +48,8 @@ Vue.use(Button)
   .use(Tooltip)
   .use(Pagination)
   .use(Dialog)
+  .use(Tag)
+  .use(Tree)
 
 // .use(Message)
 Vue.prototype.$message = Message
