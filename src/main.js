@@ -7,10 +7,18 @@ import './assets/css/base.css'
 // 引入element插件
 import './plugins/element.js'
 import './assets/fonts/iconfont.css'
+
+// 导入富文本编辑器
+import VueQuillEditor from 'vue-quill-editor'
+// require styles 导入富文本编辑器对应的样式
+import 'quill/dist/quill.core.css'
+import 'quill/dist/quill.snow.css'
+import 'quill/dist/quill.bubble.css'
 // 引入第三方表格树形控件
 import tableTree from 'vue-table-with-tree-grid'
 // 引入axios请求
 import './api'
+Vue.use(VueQuillEditor)
 Vue.component('table-tree', tableTree)
 Vue.config.productionTip = false
 Vue.filter('dateFormat', function (originVal) {

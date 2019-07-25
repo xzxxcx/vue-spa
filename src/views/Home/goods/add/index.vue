@@ -29,7 +29,7 @@
           :before-leave="beforeTabLeave"
           @tab-click="tabClicked"
         >
-          <el-tab-pane label="基本信息" name='0'>
+          <el-tab-pane label="基本信息" name="0">
             <el-form-item label="商品名称" prop="goods_name">
               <el-input v-model="addForm.goods_name"></el-input>
             </el-form-item>
@@ -52,35 +52,56 @@
               ></el-cascader>
             </el-form-item>
           </el-tab-pane>
-          <el-tab-pane label="商品参数" name='1'>
+          <el-tab-pane label="商品参数" name="1">
             <el-form-item :label="item.attr_name" v-for="item in manyTableData" :key="item.attr_id">
               <el-checkbox-group v-model="item.attr_vals">
                 <el-checkbox :label="cb" border v-for="(cb,i) in item.attr_vals" :key="i"></el-checkbox>
               </el-checkbox-group>
             </el-form-item>
           </el-tab-pane>
-          <el-tab-pane label="商品属性" name='2'>
+          <el-tab-pane label="商品属性" name="2">
             <el-form-item :label="item.attr_name" v-for="item in onlyTableData" :key="item.attr_id">
-                <el-input v-model="item.attr_vals">
-                </el-input>
+              <el-input v-model="item.attr_vals"></el-input>
             </el-form-item>
           </el-tab-pane>
-          <el-tab-pane label="商品图片" name='3'>商品图片</el-tab-pane>
-          <el-tab-pane label="商品内容" name='4'>商品内容</el-tab-pane>
+          <el-tab-pane label="商品图片" name="3">
+            <el-upload
+              :action="uploadURL"
+              :on-preview="handlePreview"
+              :on-remove="handleRemove"
+              list-type="picture"
+              :headers="headersObj"
+              :on-success="handleSuccess"
+            >
+              <el-button size="small" type="primary">点击上传</el-button>
+              <div slot="tip" class="el-upload__tip">只能上传jpg/png文件，且不超过500kb</div>
+            </el-upload>
+          </el-tab-pane>
+          <el-tab-pane label="商品内容" name="4">
+               <!-- 富文本编辑器组件 -->
+            <quill-editor v-model="addForm.goods_introduce"></quill-editor>
+            <!-- 添加商品的按钮 -->
+            <el-button type="primary" class="btnAdd" @click="add">添加商品</el-button>
+          </el-tab-pane>
         </el-tabs>
       </el-form>
     </el-card>
+      <!-- 图片预览 -->
+    <el-dialog title="图片预览" :visible.sync="previewVisible" width="50%">
+      <img :src="previewPath" alt="" class="previewImg">
+    </el-dialog>
   </div>
 </template>
 <script>
+import _ from 'lodash'
 export default {
   data: () => ({
     activeIndex: '0',
     addForm: {
       goods_name: '',
-      goods_price: 0,
-      goods_weight: 0,
-      goods_number: 0,
+      goods_price: '',
+      goods_weight: '',
+      goods_number: '',
       // 商品所属的分类数组
       goods_cat: [],
       // 图片的数组
@@ -117,7 +138,16 @@ export default {
     // 动态参数列表数据
     manyTableData: [],
     // 静态属性列表数据
-    onlyTableData: []
+    onlyTableData: [],
+    uploadURL: 'http://127.0.0.1:8888/api/private/v1/upload',
+    headersObj: {
+      Authorization:
+        sessionStorage.getItem('token')
+
+    },
+    previewPath: '',
+    previewVisible: false
+
   }),
   created () {
     this.getCateList()
@@ -180,6 +210,63 @@ export default {
         console.log(data)
         this.onlyTableData = data
       }
+    },
+    handlePreview (flie) {
+      this.previewPath = flie.response.data.url
+      this.previewVisible = true
+    },
+    handleRemove (file) {
+      // console.log(file)
+      // 1. 获取将要删除的图片的临时路径
+      const filePath = file.response.data.tmp_path
+      // 2. 从 pics 数组中，找到这个图片对应的索引值
+      const i = this.addForm.pics.findIndex(x => {
+        console.log(x)
+        return x.pic === filePath
+      })
+      // 3. 调用数组的 splice 方法，把图片信息对象，从 pics 数组中移除
+      console.log(i)
+      this.addForm.pics.splice(i, 1)
+      console.log(this.addForm)
+    },
+    handleSuccess (res) {
+      // console.log(res)
+      this.addForm.pics.push({ pic: res.data.tmp_path })
+      // console.log(this.addForm)
+    },
+    add () {
+      this.$refs.addFormRef.validate(async valid => {
+        if (!valid) {
+          return this.$message.error('请填写必要的表单项！')
+        }
+        // Object.assign({},obj)
+        const form = _.cloneDeep(this.addForm)
+        form.goods_cat = form.goods_cat.join(',')
+        this.manyTableData.forEach(item => {
+          const newInfo = {
+            attr_id: item.attr_id,
+            attr_value: item.attr_vals.join(' ')
+          }
+          this.addForm.attrs.push(newInfo)
+        })
+        // 处理静态属性
+        this.onlyTableData.forEach(item => {
+          const newInfo = { attr_id: item.attr_id, attr_value: item.attr_vals }
+          this.addForm.attrs.push(newInfo)
+        })
+        form.attrs = this.addForm.attrs
+        console.log(form)
+        // 发起请求添加商品
+        // 商品的名称，必须是唯一的
+        const { data: { meta } } = await this.$http.post('goods', form)
+
+        if (meta.status !== 201) {
+          return this.$message.error('添加商品失败！')
+        }
+
+        this.$message.success('添加商品成功！')
+        this.$router.push('/goods')
+      })
     }
   },
   computed: {
